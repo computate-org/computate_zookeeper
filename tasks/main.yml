@@ -7,7 +7,7 @@
   package:
     name: [java-latest-openjdk-devel,java-latest-openjdk]
   become: yes
-  when: JAVAC_EXISTS.stat.exists == false
+  when: not JAVAC_EXISTS.stat.exists
 - name: Create the {{ZOOKEEPER_NAME}} source directory {{ZOOKEEPER_SRC}}. 
   file:
     name: "{{ZOOKEEPER_SRC}}"
