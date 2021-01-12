@@ -13,9 +13,10 @@
     name: [openjdk,gnu-tar]
   when: ansible_pkg_mgr == 'homebrew'
 - name: Link openjdk to Library
-  shell: ln -sfn /usr/local/opt/openjdk/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk.jdk
-  args:
-    creates: /Library/Java/JavaVirtualMachines/openjdk.jdk
+  file:
+    src: /usr/local/opt/openjdk/libexec/openjdk.jdk
+    dest: /Library/Java/JavaVirtualMachines/openjdk.jdk
+    state: link
   become: true
   when: ansible_pkg_mgr == 'homebrew'
 - name: Create the {{ ZOOKEEPER_NAME }} source directory {{ ZOOKEEPER_SRC }}. 
