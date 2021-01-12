@@ -5,7 +5,7 @@
   register: JAVAC_EXISTS
 - name: Install {{ ZOOKEEPER_NAME }} dependencies. 
   package:
-    name: [java-latest-openjdk-devel,java-latest-openjdk,gnu-tar]
+    name: [java-latest-openjdk-devel,java-latest-openjdk]
   become: yes
   when: ansible_pkg_mgr != 'homebrew'
 - name: Install {{ ZOOKEEPER_NAME }} dependencies. 
