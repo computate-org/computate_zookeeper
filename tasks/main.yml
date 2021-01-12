@@ -46,14 +46,32 @@
     src: zookeeper_systemd_service.j2
     dest: "{{ ZOOKEEPER_SYSTEMD }}"
   become: yes
+  when: ansible_pkg_mgr != 'homebrew'
 - name: Reload the services. 
   systemd:
     daemon_reload: yes
   become: yes
+  when: ansible_pkg_mgr != 'homebrew'
 - name: Start and enable the {{ ZOOKEEPER_NAME }} service. 
   service:
     name: "{{ ZOOKEEPER_SERVICE }}"
     enabled: yes
     state: restarted
   become: yes
+  when: ansible_pkg_mgr != 'homebrew'
+
+- name: Create the {{ ZOOKEEPER_NAME }} launchd service {{ ZOOKEEPER_SYSTEMD }}.
+  template:
+    src: zookeeper_launchd_service.j2
+    dest: "~/Library/LaunchAgents/org.zookeeper.plist"
+  when: ansible_pkg_mgr == 'homebrew'
+- name: Load the {{ ZOOKEEPER_NAME }} launchd service {{ ZOOKEEPER_SYSTEMD }}.
+  shell: launchctl load ~/Library/LaunchAgents/org.zookeeper.plist
+  when: ansible_pkg_mgr == 'homebrew'
+- name: Stop the {{ ZOOKEEPER_NAME }} launchd service {{ ZOOKEEPER_SYSTEMD }} before restarting it.
+  shell: /opt/zookeeper/bin/zkServer.sh stop
+  when: ansible_pkg_mgr == 'homebrew'
+- name: Start the {{ ZOOKEEPER_NAME }} launchd service {{ ZOOKEEPER_SYSTEMD }}.
+  shell: /opt/zookeeper/bin/zkServer.sh start
+  when: ansible_pkg_mgr == 'homebrew'
 
