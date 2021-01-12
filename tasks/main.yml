@@ -5,15 +5,24 @@
   register: JAVAC_EXISTS
 - name: Install {{ ZOOKEEPER_NAME }} dependencies. 
   package:
-    name: [java-latest-openjdk-devel,java-latest-openjdk]
+    name: [java-latest-openjdk-devel,java-latest-openjdk,gnu-tar]
   become: yes
-  when: not JAVAC_EXISTS.stat.exists
+  when: ansible_pkg_mgr != 'homebrew'
+- name: Install {{ ZOOKEEPER_NAME }} dependencies. 
+  package:
+    name: [openjdk,gnu-tar]
+  when: ansible_pkg_mgr == 'homebrew'
+- name: Link openjdk to Library
+  shell: ln -sfn /usr/local/opt/openjdk/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk.jdk
+  args:
+    creates: /Library/Java/JavaVirtualMachines/openjdk.jdk
+  become: true
+  when: ansible_pkg_mgr == 'homebrew'
 - name: Create the {{ ZOOKEEPER_NAME }} source directory {{ ZOOKEEPER_SRC }}. 
   file:
     name: "{{ ZOOKEEPER_SRC }}"
     state: directory
     owner: "{{ USER_NAME }}"
-    group: "{{ USER_NAME }}"
   become: yes
 - name: Download the {{ ZOOKEEPER_NAME }} application. 
   get_url:
@@ -25,7 +34,6 @@
     name: "{{ ZOOKEEPER_OPT }}"
     state: directory
     owner: "{{ USER_NAME }}"
-    group: "{{ USER_NAME }}"
   become: yes
 - name: Install {{ ZOOKEEPER_NAME }} into the {{ ZOOKEEPER_OPT }} install directory. 
   unarchive:
@@ -60,18 +68,18 @@
   become: yes
   when: ansible_pkg_mgr != 'homebrew'
 
-- name: Create the {{ ZOOKEEPER_NAME }} launchd service {{ ZOOKEEPER_SYSTEMD }}.
+- name: Create the {{ ZOOKEEPER_NAME }} launchd service.
   template:
     src: zookeeper_launchd_service.j2
     dest: "~/Library/LaunchAgents/org.zookeeper.plist"
   when: ansible_pkg_mgr == 'homebrew'
-- name: Load the {{ ZOOKEEPER_NAME }} launchd service {{ ZOOKEEPER_SYSTEMD }}.
+- name: Load the {{ ZOOKEEPER_NAME }} launchd service.
   shell: launchctl load ~/Library/LaunchAgents/org.zookeeper.plist
   when: ansible_pkg_mgr == 'homebrew'
-- name: Stop the {{ ZOOKEEPER_NAME }} launchd service {{ ZOOKEEPER_SYSTEMD }} before restarting it.
+- name: Stop the {{ ZOOKEEPER_NAME }} launchd service before restarting it.
   shell: /opt/zookeeper/bin/zkServer.sh stop
   when: ansible_pkg_mgr == 'homebrew'
-- name: Start the {{ ZOOKEEPER_NAME }} launchd service {{ ZOOKEEPER_SYSTEMD }}.
+- name: Start the {{ ZOOKEEPER_NAME }} launchd service.
   shell: /opt/zookeeper/bin/zkServer.sh start
   when: ansible_pkg_mgr == 'homebrew'
 
