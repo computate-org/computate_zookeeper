@@ -77,10 +77,7 @@
 - name: Load the {{ ZOOKEEPER_NAME }} launchd service.
   shell: launchctl load ~/Library/LaunchAgents/org.zookeeper.plist
   when: ansible_pkg_mgr == 'homebrew'
-- name: Stop the {{ ZOOKEEPER_NAME }} launchd service before restarting it.
-  shell: /opt/zookeeper/bin/zkServer.sh stop
-  when: ansible_pkg_mgr == 'homebrew'
 - name: Start the {{ ZOOKEEPER_NAME }} launchd service.
-  shell: /opt/zookeeper/bin/zkServer.sh start
+  shell: launchctl start org.zookeeper
   when: ansible_pkg_mgr == 'homebrew'
 
