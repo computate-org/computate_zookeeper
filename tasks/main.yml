@@ -5,8 +5,10 @@
   register: JAVAC_EXISTS
 - name: Install {{ ZOOKEEPER_NAME }} dependencies. 
   package:
-    name: [java-latest-openjdk-devel,java-latest-openjdk]
+    name: [java-1.8.0-openjdk]
   become: yes
+  vars:
+    ansible_python_interpreter: /usr/bin/python
   when: ansible_pkg_mgr != 'homebrew'
 - name: Install {{ ZOOKEEPER_NAME }} dependencies. 
   package:
