@@ -4,10 +4,9 @@ After=network.target
 
 [Service]
 Type=simple
-User={{ USER_NAME }}
-Group={{ USER_NAME }}
-WorkingDirectory={{ ZOOKEEPER_OPT }}
-ExecStart={{ ZOOKEEPER_OPT }}/bin/zkServer.sh start-foreground
+WorkingDirectory={{ APP_OPT }}
+ExecStart=/usr/bin/podman run -v {{ APP_DATA }}:/data -v {{ APP_OPT }}/conf:/conf --publish {{ APP_PORT }}:{{ APP_PORT }} {{ APP_NAME }}
+ExecStop=/usr/bin/podman stop -t 2 {{ APP_NAME }}
 Restart=on-failure
 
 [Install]

@@ -1,0 +1,7 @@
+---
+- name: Install the zookeeper container locally
+  connection: local
+  hosts: localhost
+  roles:
+    - computate.computate_zookeeper
+

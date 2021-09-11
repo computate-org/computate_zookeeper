@@ -1,85 +1,111 @@
 ---
-- name: Check if javac command exists
-  stat:
-    path: /usr/bin/javac
-  register: JAVAC_EXISTS
-- name: Install {{ ZOOKEEPER_NAME }} dependencies. 
+- name: Install {{ APP_NAME }} dependencies
   package:
-    name: [java-1.8.0-openjdk]
-  become: yes
-  vars:
-    ansible_python_interpreter: /usr/bin/python
-  when: ansible_pkg_mgr != 'homebrew'
-- name: Install {{ ZOOKEEPER_NAME }} dependencies. 
-  package:
-    name: [openjdk,gnu-tar]
-  when: ansible_pkg_mgr == 'homebrew'
-- name: Link openjdk to Library
-  file:
-    src: /usr/local/opt/openjdk/libexec/openjdk.jdk
-    dest: /Library/Java/JavaVirtualMachines/openjdk.jdk
-    state: link
+    name:
+      - python3
+      - python3-pip
+      - python3-libselinux
+      - python3-libsemanage
+      - podman
+    state: present
   become: true
+  when: ansible_pkg_mgr != 'homebrew'
+- name: Set container_manage_cgroup flag on to run podman containers as systemd services and keep it persistent across reboots
+  ansible.posix.seboolean:
+    name: container_manage_cgroup
+    state: true
+    persistent: true
+  become: true
+- name: Install {{ APP_NAME }} dependencies
+  package:
+    name:
+      - podman
   when: ansible_pkg_mgr == 'homebrew'
-- name: Create the {{ ZOOKEEPER_NAME }} source directory {{ ZOOKEEPER_SRC }}. 
-  file:
-    name: "{{ ZOOKEEPER_SRC }}"
-    state: directory
-    owner: "{{ USER_NAME }}"
-  become: yes
-- name: Download the {{ ZOOKEEPER_NAME }} application. 
+- name: Check for the {{ APP_NAME }} download
+  stat:
+    path: "{{ APP_DOWNLOAD_DEST }}"
+  register: APP_DOWNLOAD
+- name: Download the {{ APP_NAME }} application. 
   get_url:
-    url: "{{ ZOOKEEPER_DOWNLOAD_URL }}"
-    dest: "{{ ZOOKEEPER_DOWNLOAD_DEST }}"
-    checksum: "sha512:{{ ZOOKEEPER_DOWNLOAD_SHA512 }}"
-- name: Create the {{ ZOOKEEPER_NAME }} install directory {{ ZOOKEEPER_OPT }}. 
+    url: "{{ APP_DOWNLOAD_URL }}"
+    dest: "{{ APP_DOWNLOAD_DEST }}"
+    checksum: "sha512:{{ APP_DOWNLOAD_SHA512 }}"
+  when: not APP_DOWNLOAD.stat.exists
+- name: Create the {{ APP_NAME }} install directory {{ APP_OPT }}. 
   file:
-    name: "{{ ZOOKEEPER_OPT }}"
+    name: "{{ APP_OPT }}"
     state: directory
     owner: "{{ USER_NAME }}"
-  become: yes
-- name: Install {{ ZOOKEEPER_NAME }} into the {{ ZOOKEEPER_OPT }} install directory. 
+  become: true
+- name: Install {{ APP_NAME }} into the {{ APP_OPT }} install directory. 
   unarchive:
-    src: "{{ ZOOKEEPER_DOWNLOAD_DEST }}"
-    dest: "{{ ZOOKEEPER_OPT }}"
-    remote_src: yes
+    src: "{{ APP_DOWNLOAD_DEST }}"
+    dest: "{{ APP_OPT }}"
+    remote_src: true
     extra_opts: [--strip-components=1]
-- name: Create the {{ ZOOKEEPER_NAME }} install directory {{ ZOOKEEPER_OPT }}. 
+- name: Create the {{ APP_NAME }} conf directory {{ APP_CONF }}
   file:
-    name: "{{ ZOOKEEPER_OPT }}"
+    name: "{{ APP_CONF }}"
     state: directory
-- name: Create the {{ ZOOKEEPER_NAME }} config file {{ ZOOKEEPER_CONF }}. 
+    owner: "{{ USER_NAME }}"
+  become: true
+- name: Create the {{ APP_NAME }} data directory {{ APP_DATA }}
+  file:
+    name: "{{ APP_DATA }}"
+    state: directory
+    owner: "root"
+  become: true
+- name: set SELinux permissions on {{ APP_DATA }}
+  sefcontext:
+    target: "{{ APP_DATA }}"
+    setype: container_file_t
+  become: true
+- name: reload SELinux policy to ensure that {{ APP_NAME }} is executable
+  command: "restorecon -irv {{ APP_DATA }}"
+  become: true
+- name: Create the {{ APP_NAME }} config file {{ APP_CONF }}/zoo.cfg
   template:
     src: zookeeper_config.j2
-    dest: "{{ ZOOKEEPER_CONF }}"
-- name: Create the {{ ZOOKEEPER_NAME }} systemd service {{ ZOOKEEPER_SYSTEMD }}. 
+    dest: "{{ APP_CONF }}/zoo.cfg"
+- name: Create the {{ APP_NAME }} log4j.properties file {{ APP_CONF }}/log4j.properties
+  template:
+    src: zookeeper_log4j.properties
+    dest: "{{ APP_CONF }}/log4j.properties"
+- name: Create the {{ APP_NAME }} systemd service {{ APP_SYSTEMD }}
   template:
     src: zookeeper_systemd_service.j2
-    dest: "{{ ZOOKEEPER_SYSTEMD }}"
-  become: yes
+    dest: "{{ APP_SYSTEMD }}"
+  become: true
   when: ansible_pkg_mgr != 'homebrew'
-- name: Reload the services. 
+- name: Reload the services
   systemd:
-    daemon_reload: yes
-  become: yes
+    daemon_reload: true
+  become: true
   when: ansible_pkg_mgr != 'homebrew'
-- name: Start and enable the {{ ZOOKEEPER_NAME }} service. 
+- name: Start and enable the {{ APP_NAME }} service
   service:
-    name: "{{ ZOOKEEPER_SERVICE }}"
-    enabled: yes
+    name: "{{ APP_SERVICE }}"
+    enabled: true
     state: restarted
-  become: yes
+  become: true
+  when: ansible_pkg_mgr != 'homebrew'
+- name: Restart the firewalld service
+  service:
+    name: firewalld
+    enabled: true
+    state: restarted
+  become: true
   when: ansible_pkg_mgr != 'homebrew'
 
-- name: Create the {{ ZOOKEEPER_NAME }} launchd service.
+- name: Create the {{ APP_NAME }} launchd service.
   template:
     src: zookeeper_launchd_service.j2
     dest: "~/Library/LaunchAgents/org.zookeeper.plist"
   when: ansible_pkg_mgr == 'homebrew'
-- name: Load the {{ ZOOKEEPER_NAME }} launchd service.
+- name: Load the {{ APP_NAME }} launchd service.
   shell: launchctl load ~/Library/LaunchAgents/org.zookeeper.plist
   when: ansible_pkg_mgr == 'homebrew'
-- name: Start the {{ ZOOKEEPER_NAME }} launchd service.
+- name: Start the {{ APP_NAME }} launchd service.
   shell: launchctl start org.zookeeper
   when: ansible_pkg_mgr == 'homebrew'
 
