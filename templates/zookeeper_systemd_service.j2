@@ -5,7 +5,7 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory={{ APP_OPT }}
-ExecStart=/usr/bin/podman run -v {{ APP_DATA }}:/data -v {{ APP_OPT }}/conf:/conf --publish {{ APP_PORT }}:{{ APP_PORT }} {{ APP_NAME }}
+ExecStart=/usr/bin/podman run -v {{ APP_DATA }}:/data -v {{ APP_OPT }}/conf:/conf -p {{ APP_PORT }}:{{ APP_PORT }} {{ APP_NAME }}
 ExecStop=/usr/bin/podman stop -t 2 {{ APP_NAME }}
 Restart=on-failure
 
