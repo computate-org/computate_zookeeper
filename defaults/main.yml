@@ -2,7 +2,8 @@
 APP_NAME: zookeeper
 APP_SRC: /usr/local/src/zookeeper
 APP_OPT: /opt/zookeeper
-APP_DATA: /var/zookeeper/data
+APP_VAR: /var/zookeeper
+APP_DATA: "{{ APP_VAR }}/data"
 APP_CONF: /opt/zookeeper/conf
 APP_SERVICE: "{{ APP_NAME }}"
 APP_SYSTEMD: "/usr/lib/systemd/system/{{ APP_SERVICE }}.service"
@@ -10,6 +11,7 @@ APP_REPO: https://github.com/apache/zookeeper.git
 APP_VERSION: 3.6.1
 APP_TAG: "release-{{ APP_VERSION }}"
 APP_PORT: 2181
+APP_USER: "root"
 APP_MIRROR_URL: https://archive.apache.org/dist/zookeeper
 APP_DOWNLOAD_FILENAME: "apache-{{ APP_NAME }}-{{ APP_VERSION }}-bin.tar.gz"
 APP_DOWNLOAD_URL: "{{ APP_MIRROR_URL }}/zookeeper-{{ APP_VERSION }}/{{ APP_DOWNLOAD_FILENAME }}"

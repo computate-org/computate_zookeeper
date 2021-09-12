@@ -48,19 +48,25 @@
     state: directory
     owner: "{{ USER_NAME }}"
   become: true
+- name: Create the {{ APP_NAME }} var directory {{ APP_VAR }}
+  file:
+    name: "{{ APP_VAR }}"
+    state: directory
+    owner: "{{ APP_USER }}"
+  become: true
 - name: Create the {{ APP_NAME }} data directory {{ APP_DATA }}
   file:
     name: "{{ APP_DATA }}"
     state: directory
-    owner: "root"
+    owner: "{{ APP_USER }}"
   become: true
-- name: set SELinux permissions on {{ APP_DATA }}
+- name: set SELinux permissions on {{ APP_VAR }}
   sefcontext:
-    target: "{{ APP_DATA }}"
+    target: "{{ APP_VAR }}"
     setype: container_file_t
   become: true
 - name: reload SELinux policy to ensure that {{ APP_NAME }} is executable
-  command: "restorecon -irv {{ APP_DATA }}"
+  command: "restorecon -irv {{ APP_VAR }}"
   become: true
 - name: Create the {{ APP_NAME }} config file {{ APP_CONF }}/zoo.cfg
   template:
