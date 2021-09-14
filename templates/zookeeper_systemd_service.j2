@@ -6,11 +6,9 @@ After=network.target
 Type=simple
 User={{ APP_USER }}
 WorkingDirectory={{ APP_OPT }}
-ExecStart=/usr/bin/podman run --name {{ APP_NAME }} -v {{ APP_VAR }}:/var/zookeeper -v {{ APP_OPT }}/conf:/conf -p {{ APP_PORT }}:{{ APP_PORT }} -e ZOO_DATA_DIR={{ APP_DATA }} {{ APP_NAME }}
-#ExecStop=/usr/bin/podman stop -t 2 {{ APP_NAME }} && /usr/bin/podman rm {{ APP_NAME }}
+ExecStart=/usr/bin/podman run --name {{ APP_NAME }} --pod {{ APP_POD }} -v {{ APP_VAR }}:/var/zookeeper:Z -v {{ APP_OPT }}/conf:/conf:Z --rm -e ZOO_DATA_DIR={{ APP_DATA }} {{ APP_NAME }}:{{ APP_VERSION }}
 ExecStop=/usr/bin/podman rm {{ APP_NAME }} -f
 Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
-

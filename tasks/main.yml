@@ -1,5 +1,18 @@
 ---
-- name: Install {{ APP_NAME }} dependencies
+- name: "install podman dependency"
+  package:
+    name:
+      - python3
+      - python3-pip
+      - libselinux-python
+      - libsemanage-python
+      - podman
+    state: present
+  become: true
+  when: ansible_pkg_mgr != 'homebrew' and APP_PYTHON == '/usr/bin/python'
+  vars:
+    ansible_python_interpreter: "{{ APP_PYTHON }}"
+- name: "install podman dependency"
   package:
     name:
       - python3
@@ -9,18 +22,17 @@
       - podman
     state: present
   become: true
-  when: ansible_pkg_mgr != 'homebrew'
+  when: ansible_pkg_mgr != 'homebrew' and APP_PYTHON == '/usr/bin/python3'
+  vars:
+    ansible_python_interpreter: "{{ APP_PYTHON }}"
 - name: Set container_manage_cgroup flag on to run podman containers as systemd services and keep it persistent across reboots
   ansible.posix.seboolean:
     name: container_manage_cgroup
     state: true
     persistent: true
   become: true
-- name: Install {{ APP_NAME }} dependencies
-  package:
-    name:
-      - podman
-  when: ansible_pkg_mgr == 'homebrew'
+  vars:
+    ansible_python_interpreter: "{{ APP_PYTHON }}"
 - name: Check for the {{ APP_NAME }} download
   stat:
     path: "{{ APP_DOWNLOAD_DEST }}"
@@ -34,7 +46,7 @@
   file:
     name: "{{ APP_OPT }}"
     state: directory
-    owner: "{{ USER_NAME }}"
+    owner: "{{ APP_USER }}"
   become: true
 - name: Install {{ APP_NAME }} into the {{ APP_OPT }} install directory. 
   unarchive:
@@ -42,40 +54,100 @@
     dest: "{{ APP_OPT }}"
     remote_src: true
     extra_opts: [--strip-components=1]
+  become: true
 - name: Create the {{ APP_NAME }} conf directory {{ APP_CONF }}
   file:
     name: "{{ APP_CONF }}"
     state: directory
-    owner: "{{ USER_NAME }}"
-  become: true
-- name: Create the {{ APP_NAME }} var directory {{ APP_VAR }}
-  file:
-    name: "{{ APP_VAR }}"
-    state: directory
     owner: "{{ APP_USER }}"
+    mode: 0777
+  become: true
+- name: Create the {{ APP_NAME }} config file {{ APP_CONF }}/zoo.cfg
+  template:
+    src: zookeeper_config.j2
+    dest: "{{ APP_CONF }}/zoo.cfg"
+  become: true
+- name: Create the {{ APP_NAME }} log4j.properties file {{ APP_CONF }}/log4j.properties
+  template:
+    src: zookeeper_log4j.properties
+    dest: "{{ APP_CONF }}/log4j.properties"
+  become: true
+- name: set SELinux permissions on {{ APP_CONF }}
+  sefcontext:
+    target: "{{ APP_CONF }}"
+    setype: container_file_t
+  become: true
+  vars:
+    ansible_python_interpreter: "{{ APP_PYTHON }}"
+- name: set SELinux permissions on {{ APP_CONF }}/*
+  sefcontext:
+    target: "{{ APP_CONF }}/*"
+    setype: container_file_t
+  become: true
+  vars:
+    ansible_python_interpreter: "{{ APP_PYTHON }}"
+- name: reload SELinux policy to ensure that {{ APP_NAME }} is executable
+  command: "restorecon -irv {{ APP_CONF }}"
   become: true
 - name: Create the {{ APP_NAME }} data directory {{ APP_DATA }}
   file:
     name: "{{ APP_DATA }}"
     state: directory
     owner: "{{ APP_USER }}"
+    mode: 0777
   become: true
-- name: set SELinux permissions on {{ APP_VAR }}
+- name: set SELinux permissions on {{ APP_DATA }}
   sefcontext:
-    target: "{{ APP_VAR }}"
+    target: "{{ APP_DATA }}"
     setype: container_file_t
   become: true
+  vars:
+    ansible_python_interpreter: "{{ APP_PYTHON }}"
 - name: reload SELinux policy to ensure that {{ APP_NAME }} is executable
-  command: "restorecon -irv {{ APP_VAR }}"
+  command: "restorecon -irv {{ APP_DATA }}"
   become: true
-- name: Create the {{ APP_NAME }} config file {{ APP_CONF }}/zoo.cfg
-  template:
-    src: zookeeper_config.j2
-    dest: "{{ APP_CONF }}/zoo.cfg"
-- name: Create the {{ APP_NAME }} log4j.properties file {{ APP_CONF }}/log4j.properties
-  template:
-    src: zookeeper_log4j.properties
-    dest: "{{ APP_CONF }}/log4j.properties"
+- name: Create a podman pod named {{ APP_POD }}
+  containers.podman.podman_pod:
+    name: "{{ APP_POD }}"
+    state: started
+    ports:
+      - "127.0.0.1:{{ APP_PORT }}:{{ APP_PORT }}"
+      - "127.0.0.1:{{ SOLR_PORT }}:{{ SOLR_PORT }}"
+  become: true
+- name: Add {{ APP_NAME }} port to trusted firewall
+  ansible.posix.firewalld:
+    port: "{{ APP_PORT }}/tcp"
+    zone: trusted
+    permanent: true
+    state: enabled
+  become: true
+  vars:
+    ansible_python_interpreter: "{{ APP_PYTHON }}"
+- name: Trust the cni-podman0 interface
+  ansible.posix.firewalld:
+    zone: trusted
+    interface: cni-podman0
+    permanent: true
+    state: enabled
+  become: true
+  vars:
+    ansible_python_interpreter: "{{ APP_PYTHON }}"
+- name: Trust the podman IP addresses
+  ansible.posix.firewalld:
+    source: 10.88.0.0/32
+    zone: trusted
+    permanent: true
+    state: enabled
+  become: true
+  vars:
+    ansible_python_interpreter: "{{ APP_PYTHON }}"
+- name: Restart the firewalld service
+  service:
+    name: firewalld
+    enabled: true
+    state: restarted
+  become: true
+  when: ansible_pkg_mgr != 'homebrew'
 - name: Create the {{ APP_NAME }} systemd service {{ APP_SYSTEMD }}
   template:
     src: zookeeper_systemd_service.j2
@@ -90,13 +162,6 @@
 - name: Start and enable the {{ APP_NAME }} service
   service:
     name: "{{ APP_SERVICE }}"
-    enabled: true
-    state: restarted
-  become: true
-  when: ansible_pkg_mgr != 'homebrew'
-- name: Restart the firewalld service
-  service:
-    name: firewalld
     enabled: true
     state: restarted
   become: true
