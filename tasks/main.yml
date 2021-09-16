@@ -106,48 +106,19 @@
 - name: reload SELinux policy to ensure that {{ APP_NAME }} is executable
   command: "restorecon -irv {{ APP_DATA }}"
   become: true
+- name: Create a podman network named {{ APP_NETWORK }}
+  containers.podman.podman_network:
+    name: "{{ APP_NETWORK }}"
+    state: present
+  become: true
 - name: Create a podman pod named {{ APP_POD }}
   containers.podman.podman_pod:
     name: "{{ APP_POD }}"
     state: started
     ports:
-      - "127.0.0.1:{{ APP_PORT }}:{{ APP_PORT }}"
-      - "127.0.0.1:{{ SOLR_PORT }}:{{ SOLR_PORT }}"
+      - "{{ APP_PORT }}:{{ APP_PORT }}"
+    network: "{{ APP_NETWORK }}"
   become: true
-- name: Add {{ APP_NAME }} port to trusted firewall
-  ansible.posix.firewalld:
-    port: "{{ APP_PORT }}/tcp"
-    zone: trusted
-    permanent: true
-    state: enabled
-  become: true
-  vars:
-    ansible_python_interpreter: "{{ APP_PYTHON }}"
-- name: Trust the cni-podman0 interface
-  ansible.posix.firewalld:
-    zone: trusted
-    interface: cni-podman0
-    permanent: true
-    state: enabled
-  become: true
-  vars:
-    ansible_python_interpreter: "{{ APP_PYTHON }}"
-- name: Trust the podman IP addresses
-  ansible.posix.firewalld:
-    source: 10.88.0.0/32
-    zone: trusted
-    permanent: true
-    state: enabled
-  become: true
-  vars:
-    ansible_python_interpreter: "{{ APP_PYTHON }}"
-- name: Restart the firewalld service
-  service:
-    name: firewalld
-    enabled: true
-    state: restarted
-  become: true
-  when: ansible_pkg_mgr != 'homebrew'
 - name: Create the {{ APP_NAME }} systemd service {{ APP_SYSTEMD }}
   template:
     src: zookeeper_systemd_service.j2
