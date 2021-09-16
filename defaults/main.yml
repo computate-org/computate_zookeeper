@@ -1,7 +1,6 @@
 ---
 APP_NAME: zookeeper
-APP_POD: "computate"
-APP_NETWORK: "computate"
+APP_NETWORK: "host"
 APP_PYTHON: "{{ '/usr/bin/python' if lookup('file', '/usr/bin/python', errors='ignore') else '/usr/bin/python3' }}"
 APP_SRC: /usr/local/src/zookeeper
 APP_OPT: /opt/zookeeper

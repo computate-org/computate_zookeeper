@@ -106,19 +106,6 @@
 - name: reload SELinux policy to ensure that {{ APP_NAME }} is executable
   command: "restorecon -irv {{ APP_DATA }}"
   become: true
-- name: Create a podman network named {{ APP_NETWORK }}
-  containers.podman.podman_network:
-    name: "{{ APP_NETWORK }}"
-    state: present
-  become: true
-- name: Create a podman pod named {{ APP_POD }}
-  containers.podman.podman_pod:
-    name: "{{ APP_POD }}"
-    state: started
-    ports:
-      - "{{ APP_PORT }}:{{ APP_PORT }}"
-    network: "{{ APP_NETWORK }}"
-  become: true
 - name: Create the {{ APP_NAME }} systemd service {{ APP_SYSTEMD }}
   template:
     src: zookeeper_systemd_service.j2

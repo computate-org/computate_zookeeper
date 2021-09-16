@@ -6,7 +6,7 @@ After=network.target
 Type=simple
 User={{ APP_USER }}
 WorkingDirectory={{ APP_OPT }}
-ExecStart=/usr/bin/podman run --name {{ APP_NAME }} --pod {{ APP_POD }} -v {{ APP_VAR }}:/var/zookeeper:Z -v {{ APP_OPT }}/conf:/conf:Z --rm -e ZOO_DATA_DIR={{ APP_DATA }} {{ APP_NAME }}:{{ APP_VERSION }}
+ExecStart=/usr/bin/podman run --name {{ APP_NAME }} --network {{ APP_NETWORK }} -v {{ APP_VAR }}:/var/zookeeper:Z -v {{ APP_OPT }}/conf:/conf:Z --rm -e ZOO_DATA_DIR={{ APP_DATA }} {{ APP_NAME }}:{{ APP_VERSION }}
 ExecStop=/usr/bin/podman rm {{ APP_NAME }} -f
 Restart=on-failure
 
