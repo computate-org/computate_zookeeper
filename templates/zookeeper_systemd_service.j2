@@ -6,8 +6,12 @@ After=network.target
 Type=simple
 User={{ APP_USER }}
 WorkingDirectory={{ APP_OPT }}
+{% if APP_USE_PODMAN %}
 ExecStart=/usr/bin/podman run --name {{ APP_NAME }} --network {{ APP_NETWORK }} -v {{ APP_VAR }}:/var/zookeeper:Z -v {{ APP_OPT }}/conf:/conf:Z --rm -e ZOO_DATA_DIR={{ APP_DATA }} {{ APP_NAME }}:{{ APP_VERSION }}
 ExecStop=/usr/bin/podman rm {{ APP_NAME }} -f
+{% else %}
+ExecStart={{ APP_OPT }}/bin/zkServer.sh start-foreground
+{% endif %}
 Restart=on-failure
 
 [Install]

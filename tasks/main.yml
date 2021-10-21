@@ -1,12 +1,11 @@
 ---
-- name: "install podman dependency"
+- name: "install Ansible dependencies"
   package:
     name:
       - python3
       - python3-pip
       - libselinux-python
       - libsemanage-python
-      - podman
     state: present
   become: true
   when: ansible_pkg_mgr != 'homebrew' and APP_PYTHON == '/usr/bin/python'
@@ -15,14 +14,10 @@
 - name: "install podman dependency"
   package:
     name:
-      - python3
-      - python3-pip
-      - python3-libselinux
-      - python3-libsemanage
       - podman
     state: present
   become: true
-  when: ansible_pkg_mgr != 'homebrew' and APP_PYTHON == '/usr/bin/python3'
+  when: APP_USE_PODMAN and ansible_pkg_mgr != 'homebrew' and APP_PYTHON == '/usr/bin/python3'
   vars:
     ansible_python_interpreter: "{{ APP_PYTHON }}"
 - name: Set container_manage_cgroup flag on to run podman containers as systemd services and keep it persistent across reboots
@@ -33,10 +28,41 @@
   become: true
   vars:
     ansible_python_interpreter: "{{ APP_PYTHON }}"
+  when: APP_USE_PODMAN
 - name: Check for the {{ APP_NAME }} download
   stat:
     path: "{{ APP_DOWNLOAD_DEST }}"
   register: APP_DOWNLOAD
+- name: Check if javac command exists
+  stat:
+    path: /usr/bin/javac
+  register: JAVAC_EXISTS
+- name: Install {{ APP_NAME }} dependencies. 
+  package:
+    name: [java-1.8.0-openjdk]
+    state: present
+  become: yes
+  vars:
+    ansible_python_interpreter: "{{ APP_PYTHON }}"
+  when: ansible_pkg_mgr != 'homebrew'
+- name: Install {{ APP_NAME }} dependencies. 
+  package:
+    name: [openjdk,gnu-tar]
+    state: present
+  when: ansible_pkg_mgr == 'homebrew'
+- name: Link openjdk to Library
+  file:
+    src: /usr/local/opt/openjdk/libexec/openjdk.jdk
+    dest: /Library/Java/JavaVirtualMachines/openjdk.jdk
+    state: link
+  become: true
+  when: ansible_pkg_mgr == 'homebrew'
+- name: Create the {{ APP_NAME }} source directory {{ APP_SRC }}. 
+  file:
+    name: "{{ APP_SRC }}"
+    state: directory
+    owner: "{{ USER_NAME }}"
+  become: yes
 - name: Download the {{ APP_NAME }} application. 
   get_url:
     url: "{{ APP_DOWNLOAD_URL }}"
@@ -79,6 +105,7 @@
   become: true
   vars:
     ansible_python_interpreter: "{{ APP_PYTHON }}"
+  when: APP_USE_PODMAN
 - name: set SELinux permissions on {{ APP_CONF }}/*
   sefcontext:
     target: "{{ APP_CONF }}/*"
@@ -86,9 +113,11 @@
   become: true
   vars:
     ansible_python_interpreter: "{{ APP_PYTHON }}"
+  when: APP_USE_PODMAN
 - name: reload SELinux policy to ensure that {{ APP_NAME }} is executable
   command: "restorecon -irv {{ APP_CONF }}"
   become: true
+  when: APP_USE_PODMAN
 - name: Create the {{ APP_NAME }} data directory {{ APP_DATA }}
   file:
     name: "{{ APP_DATA }}"
@@ -103,9 +132,11 @@
   become: true
   vars:
     ansible_python_interpreter: "{{ APP_PYTHON }}"
+  when: APP_USE_PODMAN
 - name: reload SELinux policy to ensure that {{ APP_NAME }} is executable
   command: "restorecon -irv {{ APP_DATA }}"
   become: true
+  when: APP_USE_PODMAN
 - name: Create the {{ APP_NAME }} systemd service {{ APP_SYSTEMD }}
   template:
     src: zookeeper_systemd_service.j2
@@ -136,4 +167,3 @@
 - name: Start the {{ APP_NAME }} launchd service.
   shell: launchctl start org.zookeeper
   when: ansible_pkg_mgr == 'homebrew'
-
