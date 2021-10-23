@@ -8,18 +8,18 @@
       - libsemanage-python
     state: present
   become: true
-  when: ansible_pkg_mgr != 'homebrew' and APP_PYTHON == '/usr/bin/python'
+  when: ansible_pkg_mgr != 'homebrew' and ZOOKEEPER_PYTHON == '/usr/bin/python'
   vars:
-    ansible_python_interpreter: "{{ APP_PYTHON }}"
+    ansible_python_interpreter: "{{ ZOOKEEPER_PYTHON }}"
 - name: "install podman dependency"
   package:
     name:
       - podman
     state: present
   become: true
-  when: APP_USE_PODMAN and ansible_pkg_mgr != 'homebrew' and APP_PYTHON == '/usr/bin/python3'
+  when: ZOOKEEPER_USE_PODMAN and ansible_pkg_mgr != 'homebrew' and ZOOKEEPER_PYTHON == '/usr/bin/python3'
   vars:
-    ansible_python_interpreter: "{{ APP_PYTHON }}"
+    ansible_python_interpreter: "{{ ZOOKEEPER_PYTHON }}"
 - name: Set container_manage_cgroup flag on to run podman containers as systemd services and keep it persistent across reboots
   ansible.posix.seboolean:
     name: container_manage_cgroup
@@ -27,25 +27,25 @@
     persistent: true
   become: true
   vars:
-    ansible_python_interpreter: "{{ APP_PYTHON }}"
-  when: APP_USE_PODMAN
-- name: Check for the {{ APP_NAME }} download
+    ansible_python_interpreter: "{{ ZOOKEEPER_PYTHON }}"
+  when: ZOOKEEPER_USE_PODMAN
+- name: Check for the {{ ZOOKEEPER_NAME }} download
   stat:
-    path: "{{ APP_DOWNLOAD_DEST }}"
-  register: APP_DOWNLOAD
+    path: "{{ ZOOKEEPER_DOWNLOAD_DEST }}"
+  register: ZOOKEEPER_DOWNLOAD
 - name: Check if javac command exists
   stat:
     path: /usr/bin/javac
   register: JAVAC_EXISTS
-- name: Install {{ APP_NAME }} dependencies. 
+- name: Install {{ ZOOKEEPER_NAME }} dependencies. 
   package:
     name: [java-1.8.0-openjdk]
     state: present
   become: yes
   vars:
-    ansible_python_interpreter: "{{ APP_PYTHON }}"
+    ansible_python_interpreter: "{{ ZOOKEEPER_PYTHON }}"
   when: ansible_pkg_mgr != 'homebrew'
-- name: Install {{ APP_NAME }} dependencies. 
+- name: Install {{ ZOOKEEPER_NAME }} dependencies. 
   package:
     name: [openjdk,gnu-tar]
     state: present
@@ -57,90 +57,90 @@
     state: link
   become: true
   when: ansible_pkg_mgr == 'homebrew'
-- name: Create the {{ APP_NAME }} source directory {{ APP_SRC }}. 
+- name: Create the {{ ZOOKEEPER_NAME }} source directory {{ ZOOKEEPER_SRC }}. 
   file:
-    name: "{{ APP_SRC }}"
+    name: "{{ ZOOKEEPER_SRC }}"
     state: directory
     owner: "{{ USER_NAME }}"
   become: yes
-- name: Download the {{ APP_NAME }} application. 
+- name: Download the {{ ZOOKEEPER_NAME }} application. 
   get_url:
-    url: "{{ APP_DOWNLOAD_URL }}"
-    dest: "{{ APP_DOWNLOAD_DEST }}"
-  when: not APP_DOWNLOAD.stat.exists
-- name: Create the {{ APP_NAME }} install directory {{ APP_OPT }}. 
+    url: "{{ ZOOKEEPER_DOWNLOAD_URL }}"
+    dest: "{{ ZOOKEEPER_DOWNLOAD_DEST }}"
+  when: not ZOOKEEPER_DOWNLOAD.stat.exists
+- name: Create the {{ ZOOKEEPER_NAME }} install directory {{ ZOOKEEPER_OPT }}. 
   file:
-    name: "{{ APP_OPT }}"
+    name: "{{ ZOOKEEPER_OPT }}"
     state: directory
-    owner: "{{ APP_USER }}"
+    owner: "{{ ZOOKEEPER_USER }}"
   become: true
-- name: Install {{ APP_NAME }} into the {{ APP_OPT }} install directory. 
+- name: Install {{ ZOOKEEPER_NAME }} into the {{ ZOOKEEPER_OPT }} install directory. 
   unarchive:
-    src: "{{ APP_DOWNLOAD_DEST }}"
-    dest: "{{ APP_OPT }}"
+    src: "{{ ZOOKEEPER_DOWNLOAD_DEST }}"
+    dest: "{{ ZOOKEEPER_OPT }}"
     remote_src: true
     extra_opts: [--strip-components=1]
   become: true
-- name: Create the {{ APP_NAME }} conf directory {{ APP_CONF }}
+- name: Create the {{ ZOOKEEPER_NAME }} conf directory {{ ZOOKEEPER_CONF }}
   file:
-    name: "{{ APP_CONF }}"
+    name: "{{ ZOOKEEPER_CONF }}"
     state: directory
-    owner: "{{ APP_USER }}"
+    owner: "{{ ZOOKEEPER_USER }}"
     mode: 0777
   become: true
-- name: Create the {{ APP_NAME }} config file {{ APP_CONF }}/zoo.cfg
+- name: Create the {{ ZOOKEEPER_NAME }} config file {{ ZOOKEEPER_CONF }}/zoo.cfg
   template:
     src: zookeeper_config.j2
-    dest: "{{ APP_CONF }}/zoo.cfg"
+    dest: "{{ ZOOKEEPER_CONF }}/zoo.cfg"
   become: true
-- name: Create the {{ APP_NAME }} log4j.properties file {{ APP_CONF }}/log4j.properties
+- name: Create the {{ ZOOKEEPER_NAME }} log4j.properties file {{ ZOOKEEPER_CONF }}/log4j.properties
   template:
     src: zookeeper_log4j.properties
-    dest: "{{ APP_CONF }}/log4j.properties"
+    dest: "{{ ZOOKEEPER_CONF }}/log4j.properties"
   become: true
-- name: set SELinux permissions on {{ APP_CONF }}
+- name: set SELinux permissions on {{ ZOOKEEPER_CONF }}
   sefcontext:
-    target: "{{ APP_CONF }}"
+    target: "{{ ZOOKEEPER_CONF }}"
     setype: container_file_t
   become: true
   vars:
-    ansible_python_interpreter: "{{ APP_PYTHON }}"
-  when: APP_USE_PODMAN
-- name: set SELinux permissions on {{ APP_CONF }}/*
+    ansible_python_interpreter: "{{ ZOOKEEPER_PYTHON }}"
+  when: ZOOKEEPER_USE_PODMAN
+- name: set SELinux permissions on {{ ZOOKEEPER_CONF }}/*
   sefcontext:
-    target: "{{ APP_CONF }}/*"
+    target: "{{ ZOOKEEPER_CONF }}/*"
     setype: container_file_t
   become: true
   vars:
-    ansible_python_interpreter: "{{ APP_PYTHON }}"
-  when: APP_USE_PODMAN
-- name: reload SELinux policy to ensure that {{ APP_NAME }} is executable
-  command: "restorecon -irv {{ APP_CONF }}"
+    ansible_python_interpreter: "{{ ZOOKEEPER_PYTHON }}"
+  when: ZOOKEEPER_USE_PODMAN
+- name: reload SELinux policy to ensure that {{ ZOOKEEPER_NAME }} is executable
+  command: "restorecon -irv {{ ZOOKEEPER_CONF }}"
   become: true
-  when: APP_USE_PODMAN
-- name: Create the {{ APP_NAME }} data directory {{ APP_DATA }}
+  when: ZOOKEEPER_USE_PODMAN
+- name: Create the {{ ZOOKEEPER_NAME }} data directory {{ ZOOKEEPER_DATA }}
   file:
-    name: "{{ APP_DATA }}"
+    name: "{{ ZOOKEEPER_DATA }}"
     state: directory
-    owner: "{{ APP_USER }}"
+    owner: "{{ ZOOKEEPER_USER }}"
     mode: 0777
   become: true
-- name: set SELinux permissions on {{ APP_DATA }}
+- name: set SELinux permissions on {{ ZOOKEEPER_DATA }}
   sefcontext:
-    target: "{{ APP_DATA }}"
+    target: "{{ ZOOKEEPER_DATA }}"
     setype: container_file_t
   become: true
   vars:
-    ansible_python_interpreter: "{{ APP_PYTHON }}"
-  when: APP_USE_PODMAN
-- name: reload SELinux policy to ensure that {{ APP_NAME }} is executable
-  command: "restorecon -irv {{ APP_DATA }}"
+    ansible_python_interpreter: "{{ ZOOKEEPER_PYTHON }}"
+  when: ZOOKEEPER_USE_PODMAN
+- name: reload SELinux policy to ensure that {{ ZOOKEEPER_NAME }} is executable
+  command: "restorecon -irv {{ ZOOKEEPER_DATA }}"
   become: true
-  when: APP_USE_PODMAN
-- name: Create the {{ APP_NAME }} systemd service {{ APP_SYSTEMD }}
+  when: ZOOKEEPER_USE_PODMAN
+- name: Create the {{ ZOOKEEPER_NAME }} systemd service {{ ZOOKEEPER_SYSTEMD }}
   template:
     src: zookeeper_systemd_service.j2
-    dest: "{{ APP_SYSTEMD }}"
+    dest: "{{ ZOOKEEPER_SYSTEMD }}"
   become: true
   when: ansible_pkg_mgr != 'homebrew'
 - name: Reload the services
@@ -148,22 +148,22 @@
     daemon_reload: true
   become: true
   when: ansible_pkg_mgr != 'homebrew'
-- name: Start and enable the {{ APP_NAME }} service
+- name: Start and enable the {{ ZOOKEEPER_NAME }} service
   service:
-    name: "{{ APP_SERVICE }}"
+    name: "{{ ZOOKEEPER_SERVICE }}"
     enabled: true
     state: restarted
   become: true
   when: ansible_pkg_mgr != 'homebrew'
 
-- name: Create the {{ APP_NAME }} launchd service.
+- name: Create the {{ ZOOKEEPER_NAME }} launchd service.
   template:
     src: zookeeper_launchd_service.j2
     dest: "~/Library/LaunchAgents/org.zookeeper.plist"
   when: ansible_pkg_mgr == 'homebrew'
-- name: Load the {{ APP_NAME }} launchd service.
+- name: Load the {{ ZOOKEEPER_NAME }} launchd service.
   shell: launchctl load ~/Library/LaunchAgents/org.zookeeper.plist
   when: ansible_pkg_mgr == 'homebrew'
-- name: Start the {{ APP_NAME }} launchd service.
+- name: Start the {{ ZOOKEEPER_NAME }} launchd service.
   shell: launchctl start org.zookeeper
   when: ansible_pkg_mgr == 'homebrew'
