@@ -11,6 +11,7 @@
   when: ansible_pkg_mgr != 'homebrew' and ZOOKEEPER_PYTHON == '/usr/bin/python' and ansible_os_family != 'RedHat'
   vars:
     ansible_python_interpreter: "{{ ZOOKEEPER_PYTHON }}"
+  ignore_errors: true
 - name: "install Ansible dependencies - Red Hat Linux family"
   package:
     name:
@@ -23,6 +24,7 @@
   when: ansible_pkg_mgr != 'homebrew' and ZOOKEEPER_PYTHON == '/usr/bin/python' and ansible_os_family == 'RedHat'
   vars:
     ansible_python_interpreter: "{{ ZOOKEEPER_PYTHON }}"
+  ignore_errors: true
 
 - name: "install podman dependency"
   package:
