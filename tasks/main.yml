@@ -35,6 +35,7 @@
   when: ZOOKEEPER_USE_PODMAN and ansible_pkg_mgr != 'homebrew' and ZOOKEEPER_PYTHON == '/usr/bin/python3'
   vars:
     ansible_python_interpreter: "{{ ZOOKEEPER_PYTHON }}"
+  ignore_errors: true
 - name: Set container_manage_cgroup flag on to run podman containers as systemd services and keep it persistent across reboots
   ansible.posix.seboolean:
     name: container_manage_cgroup
@@ -60,11 +61,13 @@
   vars:
     ansible_python_interpreter: "{{ ZOOKEEPER_PYTHON }}"
   when: ansible_pkg_mgr != 'homebrew'
+  ignore_errors: true
 - name: Install {{ ZOOKEEPER_NAME }} dependencies. 
   package:
     name: [openjdk,gnu-tar]
     state: present
   when: ansible_pkg_mgr == 'homebrew'
+  ignore_errors: true
 - name: Link openjdk to Library
   file:
     src: /usr/local/opt/openjdk/libexec/openjdk.jdk
@@ -76,8 +79,6 @@
   file:
     name: "{{ ZOOKEEPER_SRC }}"
     state: directory
-    owner: "{{ USER_NAME }}"
-  become: yes
 - name: Download the {{ ZOOKEEPER_NAME }} application. 
   get_url:
     url: "{{ ZOOKEEPER_DOWNLOAD_URL }}"
@@ -87,32 +88,25 @@
   file:
     name: "{{ ZOOKEEPER_OPT }}"
     state: directory
-    owner: "{{ ZOOKEEPER_USER }}"
-  become: true
 - name: Install {{ ZOOKEEPER_NAME }} into the {{ ZOOKEEPER_OPT }} install directory. 
   unarchive:
     src: "{{ ZOOKEEPER_DOWNLOAD_DEST }}"
     dest: "{{ ZOOKEEPER_OPT }}"
     remote_src: true
     extra_opts: [--strip-components=1]
-  become: true
 - name: Create the {{ ZOOKEEPER_NAME }} conf directory {{ ZOOKEEPER_CONF }}
   file:
     name: "{{ ZOOKEEPER_CONF }}"
     state: directory
-    owner: "{{ ZOOKEEPER_USER }}"
     mode: 0777
-  become: true
 - name: Create the {{ ZOOKEEPER_NAME }} config file {{ ZOOKEEPER_CONF }}/zoo.cfg
   template:
     src: zookeeper_config.j2
     dest: "{{ ZOOKEEPER_CONF }}/zoo.cfg"
-  become: true
 - name: Create the {{ ZOOKEEPER_NAME }} log4j.properties file {{ ZOOKEEPER_CONF }}/log4j.properties
   template:
     src: zookeeper_log4j.properties
     dest: "{{ ZOOKEEPER_CONF }}/log4j.properties"
-  become: true
 - name: set SELinux permissions on {{ ZOOKEEPER_CONF }}
   sefcontext:
     target: "{{ ZOOKEEPER_CONF }}"
@@ -137,9 +131,7 @@
   file:
     name: "{{ ZOOKEEPER_DATA }}"
     state: directory
-    owner: "{{ ZOOKEEPER_USER }}"
     mode: 0777
-  become: true
 - name: set SELinux permissions on {{ ZOOKEEPER_DATA }}
   sefcontext:
     target: "{{ ZOOKEEPER_DATA }}"
@@ -156,19 +148,19 @@
   template:
     src: zookeeper_systemd_service.j2
     dest: "{{ ZOOKEEPER_SYSTEMD }}"
-  become: true
+  become: "{{ ansible_distribution_file_variety == 'RedHat' and (ansible_distribution_major_version | int) <= 7 }}"
   when: ansible_pkg_mgr != 'homebrew'
 - name: Reload the services
   systemd:
     daemon_reload: true
-  become: true
+  become: "{{ ansible_distribution_file_variety == 'RedHat' and (ansible_distribution_major_version | int) <= 7 }}"
   when: ansible_pkg_mgr != 'homebrew'
 - name: Start and enable the {{ ZOOKEEPER_NAME }} service
   service:
     name: "{{ ZOOKEEPER_SERVICE }}"
     enabled: true
     state: restarted
-  become: true
+  become: "{{ ansible_distribution_file_variety == 'RedHat' and (ansible_distribution_major_version | int) <= 7 }}"
   when: ansible_pkg_mgr != 'homebrew'
 
 - name: Create the {{ ZOOKEEPER_NAME }} launchd service.
