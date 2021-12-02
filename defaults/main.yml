@@ -6,7 +6,7 @@ ZOOKEEPER_SRC: "{{ lookup('env', 'HOME') }}/.local/src/{{ ZOOKEEPER_NAME }}"
 ZOOKEEPER_OPT: "{{ lookup('env', 'HOME') }}/.local/opt/{{ ZOOKEEPER_NAME }}"
 ZOOKEEPER_VAR: /var/zookeeper
 ZOOKEEPER_DATA: "{{ ZOOKEEPER_VAR }}/data"
-ZOOKEEPER_CONF: /opt/zookeeper/conf
+ZOOKEEPER_CONF: "/{{ ZOOKEEPER_OPT }}/conf"
 ZOOKEEPER_SERVICE: "{{ ZOOKEEPER_NAME }}"
 ZOOKEEPER_SYSTEMD: "{{ '/usr/lib/systemd/system' if ansible_distribution_file_variety == 'RedHat' and (ansible_distribution_major_version | int) <= 7 else (lookup('env', 'HOME') + '/.config/systemd/user') }}/{{ ZOOKEEPER_SERVICE }}.service"
 ZOOKEEPER_REPO: https://github.com/apache/zookeeper.git
