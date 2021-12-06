@@ -4,7 +4,6 @@ After=network.target
 
 [Service]
 Type=simple
-User={{ ZOOKEEPER_USER }}
 WorkingDirectory={{ ZOOKEEPER_OPT }}
 {% if ZOOKEEPER_USE_PODMAN %}
 ExecStart=/usr/bin/podman run --name {{ ZOOKEEPER_NAME }} --network {{ ZOOKEEPER_NETWORK }} -v {{ ZOOKEEPER_VAR }}:/var/zookeeper:Z -v {{ ZOOKEEPER_OPT }}/conf:/conf:Z --rm -e ZOO_DATA_DIR={{ ZOOKEEPER_DATA }} {{ ZOOKEEPER_NAME }}:{{ ZOOKEEPER_VERSION }}

@@ -1,50 +1,50 @@
 ---
-- name: "install Ansible dependencies"
-  package:
-    name:
-      - python3
-      - python3-pip
-      - libselinux-python
-      - libsemanage-python
-    state: present
-  become: true
-  when: ansible_pkg_mgr != 'homebrew' and ZOOKEEPER_PYTHON == '/usr/bin/python' and ansible_os_family != 'RedHat'
-  vars:
-    ansible_python_interpreter: "{{ ZOOKEEPER_PYTHON }}"
-  ignore_errors: true
-- name: "install Ansible dependencies - Red Hat Linux family"
-  package:
-    name:
-      - python3
-      - python3-pip
-      - python3-libselinux
-      - python3-libsemanage
-    state: present
-  become: true
-  when: ansible_pkg_mgr != 'homebrew' and ZOOKEEPER_PYTHON == '/usr/bin/python' and ansible_os_family == 'RedHat'
-  vars:
-    ansible_python_interpreter: "{{ ZOOKEEPER_PYTHON }}"
-  ignore_errors: true
-
-- name: "install podman dependency"
-  package:
-    name:
-      - podman
-    state: present
-  become: true
-  when: ZOOKEEPER_USE_PODMAN and ansible_pkg_mgr != 'homebrew' and ZOOKEEPER_PYTHON == '/usr/bin/python3'
-  vars:
-    ansible_python_interpreter: "{{ ZOOKEEPER_PYTHON }}"
-  ignore_errors: true
-- name: Set container_manage_cgroup flag on to run podman containers as systemd services and keep it persistent across reboots
-  ansible.posix.seboolean:
-    name: container_manage_cgroup
-    state: true
-    persistent: true
-  become: true
-  vars:
-    ansible_python_interpreter: "{{ ZOOKEEPER_PYTHON }}"
-  when: ZOOKEEPER_USE_PODMAN
+#- name: "install Ansible dependencies"
+#  package:
+#    name:
+#      - python3
+#      - python3-pip
+#      - libselinux-python
+#      - libsemanage-python
+#    state: present
+#  become: true
+#  when: ansible_pkg_mgr != 'homebrew' and ZOOKEEPER_PYTHON == '/usr/bin/python' and ansible_os_family != 'RedHat'
+#  vars:
+#    ansible_python_interpreter: "{{ ZOOKEEPER_PYTHON }}"
+#  ignore_errors: true
+#- name: "install Ansible dependencies - Red Hat Linux family"
+#  package:
+#    name:
+#      - python3
+#      - python3-pip
+#      - python3-libselinux
+#      - python3-libsemanage
+#    state: present
+#  become: true
+#  when: ansible_pkg_mgr != 'homebrew' and ZOOKEEPER_PYTHON == '/usr/bin/python' and ansible_os_family == 'RedHat'
+#  vars:
+#    ansible_python_interpreter: "{{ ZOOKEEPER_PYTHON }}"
+#  ignore_errors: true
+#
+#- name: "install podman dependency"
+#  package:
+#    name:
+#      - podman
+#    state: present
+#  become: true
+#  when: ZOOKEEPER_USE_PODMAN and ansible_pkg_mgr != 'homebrew' and ZOOKEEPER_PYTHON == '/usr/bin/python3'
+#  vars:
+#    ansible_python_interpreter: "{{ ZOOKEEPER_PYTHON }}"
+#  ignore_errors: true
+#- name: Set container_manage_cgroup flag on to run podman containers as systemd services and keep it persistent across reboots
+#  ansible.posix.seboolean:
+#    name: container_manage_cgroup
+#    state: true
+#    persistent: true
+#  become: true
+#  vars:
+#    ansible_python_interpreter: "{{ ZOOKEEPER_PYTHON }}"
+#  when: ZOOKEEPER_USE_PODMAN
 - name: Check for the {{ ZOOKEEPER_NAME }} download
   stat:
     path: "{{ ZOOKEEPER_DOWNLOAD_DEST }}"
@@ -153,6 +153,7 @@
 - name: Reload the services
   systemd:
     daemon_reload: true
+    scope: "{{ 'system' if ansible_distribution_file_variety == 'RedHat' and (ansible_distribution_major_version | int) <= 7 else 'user' }}"
   become: "{{ ansible_distribution_file_variety == 'RedHat' and (ansible_distribution_major_version | int) <= 7 }}"
   when: ansible_pkg_mgr != 'homebrew'
 - name: Start and enable the {{ ZOOKEEPER_NAME }} service
@@ -160,6 +161,7 @@
     name: "{{ ZOOKEEPER_SERVICE }}"
     enabled: true
     state: restarted
+    scope: "{{ 'system' if ansible_distribution_file_variety == 'RedHat' and (ansible_distribution_major_version | int) <= 7 else 'user' }}"
   become: "{{ ansible_distribution_file_variety == 'RedHat' and (ansible_distribution_major_version | int) <= 7 }}"
   when: ansible_pkg_mgr != 'homebrew'
 
