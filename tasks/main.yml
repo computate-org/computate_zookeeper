@@ -53,15 +53,15 @@
   stat:
     path: /usr/bin/javac
   register: JAVAC_EXISTS
-- name: Install {{ ZOOKEEPER_NAME }} dependencies. 
-  package:
-    name: [java-1.8.0-openjdk]
-    state: present
-  become: yes
-  vars:
-    ansible_python_interpreter: "{{ ZOOKEEPER_PYTHON }}"
-  when: ansible_pkg_mgr != 'homebrew'
-  ignore_errors: true
+  #- name: Install {{ ZOOKEEPER_NAME }} dependencies. 
+  #  package:
+  #    name: [java-1.8.0-openjdk]
+  #    state: present
+  #  become: yes
+  #  vars:
+  #    ansible_python_interpreter: "{{ ZOOKEEPER_PYTHON }}"
+  #  when: ansible_pkg_mgr != 'homebrew'
+  #  ignore_errors: true
 - name: Install {{ ZOOKEEPER_NAME }} dependencies. 
   package:
     name: [openjdk,gnu-tar]
