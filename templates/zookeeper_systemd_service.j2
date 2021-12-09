@@ -1,6 +1,6 @@
 [Unit]
 Description=An open source centralized cluster manager. 
-After=network.target
+After=default.target
 
 [Service]
 Type=simple
@@ -12,6 +12,3 @@ ExecStop=/usr/bin/podman rm {{ ZOOKEEPER_NAME }} -f
 ExecStart={{ ZOOKEEPER_OPT }}/bin/zkServer.sh start-foreground
 {% endif %}
 Restart=on-failure
-
-[Install]
-WantedBy=multi-user.target
