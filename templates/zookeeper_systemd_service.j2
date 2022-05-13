@@ -12,3 +12,7 @@ ExecStop=/usr/bin/podman rm {{ ZOOKEEPER_NAME }} -f
 ExecStart={{ ZOOKEEPER_OPT }}/bin/zkServer.sh start-foreground
 {% endif %}
 Restart=on-failure
+
+[Install]
+WantedBy=default.target
+
